@@ -87,6 +87,17 @@ public class Mindbox: NSObject {
         coreController?.initialization(configuration: configuration)
     }
 
+    public func initialization2(endpoint: String, domain: String) -> String{
+        do {
+            let config = try MBConfiguration(endpoint: endpoint, domain: domain)
+            coreController?.initialization(configuration: config)
+            return "Success"
+        } catch {
+            return "Fail " + error.localizedDescription
+        }
+        
+    }
+    
     private var observeTokens: [UUID] = []
 
     /**
