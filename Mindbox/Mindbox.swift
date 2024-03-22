@@ -93,9 +93,27 @@ public class Mindbox: NSObject {
             coreController?.initialization(configuration: config)
             return "Success"
         } catch {
-            return "Fail " + error.localizedDescription
+            return "Fail \(error)"
         }
         
+    }
+    
+    public func initialization3(endpoint: String, domain: String) -> String{
+        return "TEST"
+    }
+    
+    
+    public func initialization4(endpoint: String, domain: String) -> String{
+        do {
+            let errorMsg: String = "Success"
+            let config = try MBConfiguration(endpoint: endpoint, domain: domain)
+            coreController?.initialization(configuration: config)
+            return errorMsg
+        } catch let error as MindboxError {
+            return "Fail \(error)"
+        } catch {
+            return "Fail2 \(error)"
+        }
     }
     
     private var observeTokens: [UUID] = []
@@ -118,6 +136,15 @@ public class Mindbox: NSObject {
         }
     }
 
+    public func getDeviceUUIDString() -> String
+    {
+        if let value = persistenceStorage?.deviceUUID {
+            return value
+        } else {
+            return "name"
+        }
+    }
+    
     /**
      Method to obtain apnsToken.
 
