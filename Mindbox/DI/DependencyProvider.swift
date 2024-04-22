@@ -32,12 +32,12 @@ final class DependencyProvider: DependencyContainer {
     var inappFilterService: InappFilterProtocol
     var pushValidator: MindboxPushValidator
     var inAppConfigurationDataFacade: InAppConfigurationDataFacadeProtocol
-    var pushPermissionFilterService: InappFilterByPushPermission
+    var userVisitManager: UserVisitManager
 
     init() throws {
         utilitiesFetcher = MBUtilitiesFetcher()
-        inAppTargetingChecker = InAppTargetingChecker()
         persistenceStorage = MBPersistenceStorage(defaults: UserDefaults(suiteName: utilitiesFetcher.applicationGroupIdentifier)!)
+        inAppTargetingChecker = InAppTargetingChecker(persistenceStorage: persistenceStorage)
         databaseLoader = try DataBaseLoader(applicationGroupIdentifier: utilitiesFetcher.applicationGroupIdentifier)
         let persistentContainer = try databaseLoader.loadPersistentContainer()
         databaseRepository = try MBDatabaseRepository(persistentContainer: persistentContainer)
@@ -52,7 +52,7 @@ final class DependencyProvider: DependencyContainer {
             eventRepository: instanceFactory.makeEventRepository()
         )
         authorizationStatusProvider = UNAuthorizationStatusProvider()
-        sessionManager = SessionManager(trackVisitManager: instanceFactory.makeTrackVisitManager())
+        sessionManager = MBSessionManager(trackVisitManager: instanceFactory.makeTrackVisitManager())
         let logsManager = SDKLogsManager(persistenceStorage: persistenceStorage, eventRepository: instanceFactory.makeEventRepository())
 
         sdkVersionValidator = SDKVersionValidator(sdkVersionNumeric: Constants.Versions.sdkVersionNumeric)
@@ -81,13 +81,17 @@ final class DependencyProvider: DependencyContainer {
         let variantsFilterService = VariantFilterService(layersFilter: layersFilterService,
                                                          elementsFilter: elementsFilterService,
                                                          contentPositionFilter: contentPositionFilterService)
-        inappFilterService = InappsFilterService(variantsFilter: variantsFilterService)
+
+        inappFilterService = InappsFilterService(persistenceStorage: persistenceStorage,
+                                                 abTestDeviceMixer: abTestDeviceMixer,
+                                                 variantsFilter: variantsFilterService,
+                                                 sdkVersionValidator: sdkVersionValidator)
+        
         inAppConfigurationDataFacade = InAppConfigurationDataFacade(geoService: geoService,
                                                                     segmentationService: segmentationSevice,
                                                                     targetingChecker: inAppTargetingChecker,
                                                                     imageService: imageDownloadService, 
                                                                     tracker: tracker)
-        pushPermissionFilterService = InappFilterByPushPermission()
         
         inAppMessagesManager = InAppCoreManager(
             configManager: InAppConfigurationManager(
@@ -95,11 +99,7 @@ final class DependencyProvider: DependencyContainer {
                 inAppConfigRepository: InAppConfigurationRepository(),
                 inAppConfigurationMapper: InAppConfigutationMapper(inappFilterService: inappFilterService,
                                                                    targetingChecker: inAppTargetingChecker,
-                                                                   persistenceStorage: persistenceStorage,
-                                                                   sdkVersionValidator: sdkVersionValidator,
                                                                    urlExtractorService: urlExtractorService,
-                                                                   pushPermissionService: pushPermissionFilterService,
-                                                                   abTestDeviceMixer: abTestDeviceMixer,
                                                                    dataFacade: inAppConfigurationDataFacade),
                 logsManager: logsManager),
             presentationManager: presentationManager,
@@ -114,6 +114,7 @@ final class DependencyProvider: DependencyContainer {
         )
         
         pushValidator = MindboxPushValidator()
+        userVisitManager = UserVisitManager(persistenceStorage: persistenceStorage, sessionManager: sessionManager)
     }
 }
 
